@@ -1,209 +1,147 @@
 // @ts-check
 const { test, expect } = require("@playwright/test");
-
-const validPassword = "Test1234";
-
-const openRegistrationModal = async (page) => {
-  await page.goto("/");
-  await page.getByRole("button", { name: "Sign up" }).click();
-  await expect(page.getByRole("heading", { name: "Registration" })).toBeVisible();
-};
-
-const registrationForm = (page) => {
-  const form = page.getByRole("dialog").filter({ hasText: "Registration" });
-
-  return {
-    form,
-    nameInput: form.locator("#signupName"),
-    lastNameInput: form.locator("#signupLastName"),
-    emailInput: form.locator("#signupEmail"),
-    passwordInput: form.locator("#signupPassword"),
-    repeatPasswordInput: form.locator("#signupRepeatPassword"),
-    registerButton: form.getByRole("button", { name: "Register" }),
-    error: (text) => form.getByText(text),
-  };
-};
-
-const fillRegistrationForm = async (page, userData) => {
-  const { nameInput, lastNameInput, emailInput, passwordInput, repeatPasswordInput } =
-    registrationForm(page);
-
-  await nameInput.fill(userData.name);
-  await lastNameInput.fill(userData.lastName);
-  await emailInput.fill(userData.email);
-  await passwordInput.fill(userData.password);
-  await repeatPasswordInput.fill(userData.repeatPassword);
-};
+const { RegistrationPage } = require("../pageObjects/registrationPage");
+const registrationData = require("../fixtures/registrationData.json");
 
 const getUniqueEmail = () => `aqa-${Date.now()}@test.com`;
 
 test.describe("Registration", () => {
+  /** @type {RegistrationPage} */
+  let registrationPage;
+
   test.beforeEach(async ({ page }) => {
-    await openRegistrationModal(page);
+    registrationPage = new RegistrationPage(page);
+    await registrationPage.open();
   });
 
-  test("displays registration form fields", async ({ page }) => {
-    const {
-      nameInput,
-      lastNameInput,
-      emailInput,
-      passwordInput,
-      repeatPasswordInput,
-      registerButton,
-    } = registrationForm(page);
-
-    await expect(nameInput).toBeVisible();
-    await expect(lastNameInput).toBeVisible();
-    await expect(emailInput).toBeVisible();
-    await expect(passwordInput).toBeVisible();
-    await expect(repeatPasswordInput).toBeVisible();
-    await expect(registerButton).toBeVisible();
+  test("displays registration form fields", async () => {
+    await registrationPage.assertFormFieldsVisible();
   });
 
-  test("registers a new user with valid data", async ({ page }) => {
-    const { registerButton } = registrationForm(page);
-
-    await fillRegistrationForm(page, {
-      name: "John",
-      lastName: "Doe",
+  test("registers a new user with valid data", async () => {
+    await registrationPage.fillForm({
+      name: registrationData.validName,
+      lastName: registrationData.validLastName,
       email: getUniqueEmail(),
-      password: validPassword,
-      repeatPassword: validPassword,
+      password: registrationData.validPassword,
+      repeatPassword: registrationData.validPassword,
     });
 
-    await expect(registerButton).toBeEnabled();
-    await registerButton.click();
-
-    await expect(page).toHaveURL(/\/panel\/garage/);
-    await expect(page.getByRole("heading", { name: "Garage" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "My profile" })).toBeVisible();
+    await registrationPage.submitForm();
+    await registrationPage.assertSuccessfulRegistration();
   });
 
-  test("validates required Name field", async ({ page }) => {
-    const { nameInput, error } = registrationForm(page);
+  test("validates required Name field", async () => {
+    const nameInput = registrationPage.getNameInput();
 
     await nameInput.focus();
     await nameInput.blur();
 
-    await expect(error("Name required")).toBeVisible();
-    await expect(nameInput).toHaveClass(/is-invalid|ng-invalid/);
+    await registrationPage.assertInvalidField(nameInput, registrationData.nameRequiredError);
   });
 
-  test("validates invalid Name field", async ({ page }) => {
-    const { nameInput, error } = registrationForm(page);
+  test("validates invalid Name field", async () => {
+    const nameInput = registrationPage.getNameInput();
 
-    await nameInput.fill("John1");
+    await nameInput.fill(registrationData.invalidName);
     await nameInput.blur();
 
-    await expect(error("Name is invalid")).toBeVisible();
-    await expect(nameInput).toHaveClass(/is-invalid|ng-invalid/);
+    await registrationPage.assertInvalidField(nameInput, registrationData.nameInvalidError);
   });
 
-  test("validates Name field length", async ({ page }) => {
-    const { nameInput, error } = registrationForm(page);
+  test("validates Name field length", async () => {
+    const nameInput = registrationPage.getNameInput();
 
-    await nameInput.fill("A");
+    await nameInput.fill(registrationData.shortName);
     await nameInput.blur();
 
-    await expect(error("Name has to be from 2 to 20 characters long")).toBeVisible();
+    await registrationPage.assertInvalidField(nameInput, registrationData.nameLengthError);
 
-    await nameInput.fill("ABCDEFGHIJKLMNOPQRSTU");
+    await nameInput.fill(registrationData.longName);
     await nameInput.blur();
 
-    await expect(error("Name has to be from 2 to 20 characters long")).toBeVisible();
+    await registrationPage.assertInvalidField(nameInput, registrationData.nameLengthError);
   });
 
-  test("validates required Last name field", async ({ page }) => {
-    const { lastNameInput, error } = registrationForm(page);
+  test("validates required Last name field", async () => {
+    const lastNameInput = registrationPage.getLastNameInput();
 
     await lastNameInput.focus();
     await lastNameInput.blur();
 
-    await expect(error("Last name required")).toBeVisible();
-    await expect(lastNameInput).toHaveClass(/is-invalid|ng-invalid/);
+    await registrationPage.assertInvalidField(lastNameInput, registrationData.lastNameRequiredError);
   });
 
-  test("validates Last name field format and length", async ({ page }) => {
-    const { lastNameInput, error } = registrationForm(page);
+  test("validates Last name field format and length", async () => {
+    const lastNameInput = registrationPage.getLastNameInput();
 
-    await lastNameInput.fill("Doe1");
+    await lastNameInput.fill(registrationData.invalidLastName);
     await lastNameInput.blur();
 
-    await expect(error("Last name is invalid")).toBeVisible();
-    await expect(lastNameInput).toHaveClass(/is-invalid|ng-invalid/);
+    await registrationPage.assertInvalidField(lastNameInput, registrationData.lastNameInvalidError);
 
-    await lastNameInput.fill("D");
+    await lastNameInput.fill(registrationData.shortLastName);
     await lastNameInput.blur();
 
-    await expect(error("Last name has to be from 2 to 20 characters long")).toBeVisible();
+    await registrationPage.assertInvalidField(lastNameInput, registrationData.lastNameLengthError);
 
-    await lastNameInput.fill("ABCDEFGHIJKLMNOPQRSTU");
+    await lastNameInput.fill(registrationData.longLastName);
     await lastNameInput.blur();
 
-    await expect(error("Last name has to be from 2 to 20 characters long")).toBeVisible();
+    await registrationPage.assertInvalidField(lastNameInput, registrationData.lastNameLengthError);
   });
 
-  test("validates required Email field", async ({ page }) => {
-    const { emailInput, error } = registrationForm(page);
+  test("validates required Email field", async () => {
+    const emailInput = registrationPage.getEmailInput();
 
     await emailInput.focus();
     await emailInput.blur();
 
-    await expect(error("Email required")).toBeVisible();
-    await expect(emailInput).toHaveClass(/is-invalid|ng-invalid/);
+    await registrationPage.assertInvalidField(emailInput, registrationData.emailRequiredError);
   });
 
-  test("validates invalid Email field", async ({ page }) => {
-    const { emailInput, error } = registrationForm(page);
+  test("validates invalid Email field", async () => {
+    const emailInput = registrationPage.getEmailInput();
 
-    await emailInput.fill("john");
+    await emailInput.fill(registrationData.invalidEmail);
     await emailInput.blur();
 
-    await expect(error("Email is incorrect")).toBeVisible();
-    await expect(emailInput).toHaveClass(/is-invalid|ng-invalid/);
+    await registrationPage.assertInvalidField(emailInput, registrationData.emailIncorrectError);
   });
 
-  test("validates invalid Password field", async ({ page }) => {
-    const { passwordInput, error } = registrationForm(page);
+  test("validates invalid Password field", async () => {
+    const passwordInput = registrationPage.getPasswordInput();
 
-    await passwordInput.fill("short");
+    await passwordInput.fill(registrationData.invalidPassword);
     await passwordInput.blur();
 
-    await expect(
-      error(
-        "Password has to be from 8 to 15 characters long and contain at least one integer, one capital, and one small letter",
-      ),
-    ).toBeVisible();
-
-    await expect(passwordInput).toHaveClass(/is-invalid|ng-invalid/);
+    await registrationPage.assertInvalidField(passwordInput, registrationData.passwordInvalidError);
   });
 
-  test("validates password mismatch", async ({ page }) => {
-    const { passwordInput, repeatPasswordInput, error } = registrationForm(page);
+  test("validates password mismatch", async () => {
+    const passwordInput = registrationPage.getPasswordInput();
+    const repeatPasswordInput = registrationPage.getRepeatPasswordInput();
 
-    await passwordInput.fill(validPassword);
-    await repeatPasswordInput.fill("Test12345");
+    await passwordInput.fill(registrationData.validPassword);
+    await repeatPasswordInput.fill(registrationData.mismatchedPassword);
     await repeatPasswordInput.blur();
 
-    await expect(error("Passwords do not match")).toBeVisible();
-    await expect(repeatPasswordInput).toHaveClass(/is-invalid|ng-invalid/);
+    await registrationPage.assertInvalidField(
+      repeatPasswordInput,
+      registrationData.passwordsDoNotMatchError,
+    );
   });
 
-  test("keeps Register button disabled for invalid form", async ({ page }) => {
-    const {
-      nameInput,
-      lastNameInput,
-      emailInput,
-      passwordInput,
-      repeatPasswordInput,
-      registerButton,
-    } = registrationForm(page);
+  test("keeps Register button disabled for invalid form", async () => {
+    const registerButton = registrationPage.getRegisterButton();
 
-    await nameInput.fill("John");
-    await lastNameInput.fill("Doe");
-    await emailInput.fill("invalid-email");
-    await passwordInput.fill(validPassword);
-    await repeatPasswordInput.fill(validPassword);
+    await registrationPage.fillForm({
+      name: registrationData.validName,
+      lastName: registrationData.validLastName,
+      email: registrationData.invalidEmailForDisabledForm,
+      password: registrationData.validPassword,
+      repeatPassword: registrationData.validPassword,
+    });
 
     await expect(registerButton).toBeDisabled();
   });

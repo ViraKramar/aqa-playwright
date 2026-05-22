@@ -1,0 +1,34 @@
+{
+  "validName": "John",
+  "validLastName": "Doe",
+  "validPassword": "Test1234",
+
+  "invalidName": "John1",
+  "shortName": "A",
+  "longName": "ABCDEFGHIJKLMNOPQRSTU",
+
+  "invalidLastName": "Doe1",
+  "shortLastName": "D",
+  "longLastName": "ABCDEFGHIJKLMNOPQRSTU",
+
+  "invalidEmail": "john",
+  "invalidEmailForDisabledForm": "invalid-email",
+
+  "invalidPassword": "short",
+  "mismatchedPassword": "Test12345",
+
+  "nameRequiredError": "Name required",
+  "nameInvalidError": "Name is invalid",
+  "nameLengthError": "Name has to be from 2 to 20 characters long",
+
+  "lastNameRequiredError": "Last name required",
+  "lastNameInvalidError": "Last name is invalid",
+  "lastNameLengthError": "Last name has to be from 2 to 20 characters long",
+
+  "emailRequiredError": "Email required",
+  "emailIncorrectError": "Email is incorrect",
+
+  "passwordInvalidError": "Password has to be from 8 to 15 characters long and contain at least one integer, one capital, and one small letter",
+
+  "passwordsDoNotMatchError": "Passwords do not match"
+}
