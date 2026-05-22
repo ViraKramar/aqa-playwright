@@ -1,5 +1,14 @@
 // @ts-check
 import { defineConfig, devices } from "@playwright/test";
+import dotenv from "dotenv";
+
+dotenv.config({ quiet: true });
+
+const baseURL = process.env.BASE_URL ?? "https://qauto.forstudy.space";
+const httpCredentials = {
+  username: process.env.HTTP_USERNAME ?? "guest",
+  password: process.env.HTTP_PASSWORD ?? "welcome2qauto",
+};
 
 /**
  * @see https://playwright.dev/docs/test-configuration
@@ -14,15 +23,12 @@ export default defineConfig({
   reporter: "html",
 
   use: {
-    baseURL: "https://qauto.forstudy.space",
+    baseURL,
     viewport: { width: 1440, height: 900 },
     screenshot: "only-on-failure",
     video: "retain-on-failure",
     trace: "on-first-retry",
-    httpCredentials: {
-      username: "guest",
-      password: "welcome2qauto",
-    },
+    httpCredentials,
   },
 
   projects: [
